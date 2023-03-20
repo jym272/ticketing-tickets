@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_PORT}:5432
+#    volumes:
+#      - postgres-db-test:/var/lib/postgresql/data
+    healthcheck:
+      #      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      test: ['CMD-SHELL', "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1'"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+  wait-for-db-to-be-ready:
+    image: hello-world
+    depends_on:
+      db:
+        condition: service_healthy
+#volumes:
+#  postgres-db-test:

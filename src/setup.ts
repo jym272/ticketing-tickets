@@ -3,7 +3,7 @@ import 'express-async-errors';
 import { addRoutes } from '@routes/index';
 import { addMiddlewares } from '@middlewares/index';
 import { createSequelize, initializeSequelize } from '@db/sequelize';
-import { utilsController } from '@controllers/utils';
+import { commonController } from '@jym272ticketing/common';
 
 const createServer = (): express.Express => {
   return express();
@@ -29,5 +29,5 @@ export const startSetup = async (server: express.Express) => {
   configureServer(server);
   addMiddlewares(server);
   addRoutes(server);
-  server.use(utilsController.errorHandler);
+  server.use(commonController.errorHandler);
 };

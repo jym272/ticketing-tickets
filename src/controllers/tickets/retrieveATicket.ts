@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Ticket } from '@db/models';
-import { throwError } from '@utils/messages';
-import { httpStatusCodes } from '@utils/statusCodes';
+import { utils } from '@jym272ticketing/common';
+const { throwError, httpStatusCodes } = utils;
 
 export const retrieveATicketController = () => {
   return async (req: Request, res: Response) => {

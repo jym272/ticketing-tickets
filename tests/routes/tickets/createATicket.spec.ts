@@ -9,7 +9,9 @@ import {
   generateRandomString,
   createACookieSession
 } from '@tests/test-utils';
-import { httpStatusCodes, TICKET_ATTRIBUTES } from '@utils/index';
+import { utils } from '@jym272ticketing/common';
+const { httpStatusCodes } = utils;
+import { TICKET_ATTRIBUTES } from '@utils/index';
 const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, UNAUTHORIZED } = httpStatusCodes;
 const { Valid, Invalid } = priceValidity;
 const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;

@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { Ticket, getSequelizeClient } from '@db/index';
 import { TicketAttributes } from '@custom-types/index';
-import { httpStatusCodes, throwError } from '@utils/index';
+import { utils } from '@jym272ticketing/common';
+const { httpStatusCodes, throwError } = utils;
 const { UNAUTHORIZED, CREATED, INTERNAL_SERVER_ERROR } = httpStatusCodes;
 const sequelize = getSequelizeClient();
 

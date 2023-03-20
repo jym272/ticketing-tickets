@@ -1,6 +1,7 @@
 import { TestInfo } from '@playwright/test';
 import chalk from 'chalk';
-import { log } from '@utils/messages';
+import { utils } from '@jym272ticketing/common';
+const { log } = utils;
 
 const capitalizeString = (string: string) => string.charAt(0).toUpperCase() + string.slice(1);
 

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { logFinished, logRunning } from '@tests/test-utils';
-import { httpStatusCodes } from '@utils/statusCodes';
+import { utils } from '@jym272ticketing/common';
+const { httpStatusCodes } = utils;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.beforeEach(({}, testInfo) => logRunning(testInfo));

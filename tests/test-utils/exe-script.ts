@@ -1,6 +1,8 @@
 import childProcess from 'child_process';
 import { promisify } from 'util';
-import { activateLogging, log } from '@utils/messages';
+import { utils } from '@jym272ticketing/common';
+const { activateLogging, log } = utils;
+
 const exec = promisify(childProcess.exec);
 
 export const truncateTicketsTable = async (logging = activateLogging()) => {

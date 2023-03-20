@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { TicketAttributes } from '@custom-types/index';
-import { throwError } from '@utils/messages';
-import { httpStatusCodes } from '@utils/statusCodes';
+import { utils } from '@jym272ticketing/common';
+const { httpStatusCodes, throwError } = utils;
 import { isValidPrice, isValidTitle } from '@utils/validators';
 const { BAD_REQUEST } = httpStatusCodes;
 

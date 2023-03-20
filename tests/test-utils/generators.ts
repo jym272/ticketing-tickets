@@ -35,8 +35,13 @@ export const createAPrice = (valid = PriceValidity.Valid) => {
   return `${integerPrice}.${decimalPrice}`;
 };
 
-export const generateRandomString = (size: number) => crypto.randomBytes(size).toString('hex');
-
+export const generateRandomString = (maxStringLength: number, fixedLength = false): string => {
+  const randomString = crypto.randomBytes(maxStringLength).toString('hex');
+  const randomStringLength = Math.floor(Math.random() * (maxStringLength + 1));
+  const generatedString = randomString.slice(0, fixedLength ? maxStringLength : randomStringLength);
+  if (isNaN(Number(generatedString))) return generatedString;
+  return generateRandomString(maxStringLength, fixedLength);
+};
 export const createACookieSession = (user: { userEmail: string; userId: string }) => {
   const token = signJwtToken(user);
   const session = JSON.stringify({ jwt: token });

@@ -5,7 +5,7 @@ import {
   parseMessage,
   priceValidity,
   createAPrice,
-  truncateTicketsTable,
+  truncateTicketTable,
   generateRandomString,
   createACookieSession
 } from '@tests/test-utils';
@@ -21,13 +21,23 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
+let validTicketAttribute: { title: string; price: string };
+let cookie: string;
+
+test.beforeAll(() => {
+  validTicketAttribute = {
+    title: generateRandomString(MAX_VALID_TITLE_LENGTH),
+    price: createAPrice()
+  };
+  cookie = createACookieSession({
+    userEmail: 'a@a.com',
+    userId: '1'
+  });
+});
+
 test.describe('routes: /api/tickets POST requireAuth controller', () => {
   test("current user doesn't exists, not authorized by requireAuth common controller", async ({ request }) => {
-    const ticketAttr = {
-      title: 'a valid Title',
-      price: createAPrice()
-    };
-    const response = await request.post('/api/tickets', { data: ticketAttr });
+    const response = await request.post('/api/tickets', { data: validTicketAttribute });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
     expect(message).toBe('Not authorized.');
@@ -36,16 +46,9 @@ test.describe('routes: /api/tickets POST requireAuth controller', () => {
 });
 
 test.describe('routes: /api/tickets POST checking attributes', () => {
-  let cookie: string;
-  test.beforeAll(() => {
-    cookie = createACookieSession({
-      userEmail: 'a@a.com',
-      userId: '1'
-    });
-  });
   test('invalid price of a ticket', async ({ request }) => {
     const ticketAttr = {
-      title: 'a valid Title',
+      title: generateRandomString(MAX_VALID_TITLE_LENGTH),
       price: createAPrice(Invalid)
     };
     const response = await request.post('/api/tickets', {
@@ -59,7 +62,7 @@ test.describe('routes: /api/tickets POST checking attributes', () => {
   });
   test('invalid title of a ticket', async ({ request }) => {
     const ticketAttr = {
-      title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1),
+      title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
       price: createAPrice(Valid)
     };
     const response = await request.post('/api/tickets', {
@@ -75,19 +78,15 @@ test.describe('routes: /api/tickets POST checking attributes', () => {
 
 test.describe('routes: /api/tickets POST createATicketController failed', () => {
   test.beforeAll(async () => {
-    await truncateTicketsTable();
+    await truncateTicketTable();
   });
   test('user Id not found in cookie', async ({ request }) => {
-    const ticketAttr = {
-      title: 'a valid Title',
-      price: createAPrice(Valid)
-    };
     const cookieWithoutUserId = createACookieSession({
       userEmail: 'a@a.com',
       userId: ''
     });
     const response = await request.post('/api/tickets', {
-      data: ticketAttr,
+      data: validTicketAttribute,
       headers: { cookie: cookieWithoutUserId }
     });
     const message = await parseMessage(response);
@@ -96,16 +95,12 @@ test.describe('routes: /api/tickets POST createATicketController failed', () => 
     expect(response.status()).toBe(UNAUTHORIZED);
   });
   test('invalid userId in cookie', async ({ request }) => {
-    const ticketAttr = {
-      title: 'a valid Title',
-      price: createAPrice(Valid)
-    };
     const cookieWithInvalidUserId = createACookieSession({
       userEmail: 'a@a.com',
       userId: 'A1'
     });
     const response = await request.post('/api/tickets', {
-      data: ticketAttr,
+      data: validTicketAttribute,
       headers: { cookie: cookieWithInvalidUserId }
     });
     const message = await parseMessage(response);
@@ -116,21 +111,12 @@ test.describe('routes: /api/tickets POST createATicketController failed', () => 
 });
 
 test.describe('routes: /api/tickets POST createATicketController success', () => {
-  let cookie: string;
   test.beforeAll(async () => {
-    cookie = createACookieSession({
-      userEmail: 'a@a.com',
-      userId: '1'
-    });
-    await truncateTicketsTable();
+    await truncateTicketTable();
   });
   test('ticket creation is successful', async ({ request }) => {
-    const ticketAttr = {
-      title: 'a valid Title',
-      price: createAPrice(Valid)
-    };
     const response = await request.post('/api/tickets', {
-      data: ticketAttr,
+      data: validTicketAttribute,
       headers: { cookie }
     });
     const message = await parseMessage(response);

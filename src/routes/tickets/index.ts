@@ -7,9 +7,7 @@ const { retrieveAllTickets, retrieveATicket, createATicket, checkAttributes } = 
 
 export const tickets = Router();
 const secret = getEnvOrFail('JWT_SECRET');
-
 tickets.get('/api/tickets', retrieveAllTickets);
 tickets.get('/api/tickets/:id', retrieveATicket);
-//testeando este:
 tickets.post('/api/tickets', verifyCurrentUser(secret), requireAuth, checkAttributes, createATicket);
 // tickets.put('/api/tickets', verifyCurrentUser(secret), requireAuth, checkAttributes, updateATicket);

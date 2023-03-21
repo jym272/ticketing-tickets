@@ -10,12 +10,16 @@ import {
   createACookieSession,
   generateA32BitUnsignedInteger,
   generateValidTicketAttributes,
-  generateValidTicket
+  generateValidTicket,
+  createAnInvalidPrice,
+  createAValidPrice
 } from '@tests/test-utils';
 import { utils } from '@jym272ticketing/common';
 const { httpStatusCodes } = utils;
 import { Ticket } from '@custom-types/index';
-const { OK, NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED } = httpStatusCodes;
+import { TICKET_ATTRIBUTES } from '@utils/constants';
+const { OK, NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST } = httpStatusCodes;
+const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.beforeEach(({}, testInfo) => logRunning(testInfo));
@@ -107,6 +111,59 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed authorization',
     const response = await request.put(`/api/tickets/${createdTicketId}`, {
       data: generateValidTicketAttributes(),
       headers: { cookie }
+    });
+    const message = await parseMessage(response);
+    expect(response.ok()).toBe(false);
+    expect(message).toBe('Not authorized.');
+    expect(response.status()).toBe(UNAUTHORIZED);
+  });
+});
+
+test.describe('routes: /api/tickets/:id PUT update ticket failed because of attributes', () => {
+  test.beforeAll(async () => {
+    userId = generateA32BitUnsignedInteger();
+    cookie = createACookieSession({
+      userEmail: 'a@a.com',
+      userId
+    });
+    ticket = generateValidTicket(userId);
+    await truncateTicketTable();
+    await insertIntoTicketTable(ticket);
+    createdTicketId = (await selectIdFromTicketTable())[0].id;
+    Object.assign(ticket, { id: createdTicketId });
+  });
+  test('invalid price of a ticket', async ({ request }) => {
+    const response = await request.put(`/api/tickets/${createdTicketId}`, {
+      data: {
+        title: generateRandomString(MAX_VALID_TITLE_LENGTH),
+        price: Number(createAnInvalidPrice())
+      },
+      headers: { cookie }
+    });
+    const message = await parseMessage(response);
+    expect(response.ok()).toBe(false);
+    expect(message).toBe('Invalid price.');
+    expect(response.status()).toBe(BAD_REQUEST);
+  });
+  test('invalid title of a ticket', async ({ request }) => {
+    const response = await request.put(`/api/tickets/${createdTicketId}`, {
+      data: {
+        title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
+        price: Number(createAValidPrice())
+      },
+      headers: { cookie }
+    });
+    const message = await parseMessage(response);
+    expect(response.ok()).toBe(false);
+    expect(message).toBe('Invalid title.');
+    expect(response.status()).toBe(BAD_REQUEST);
+  });
+});
+
+test.describe('routes: /api/tickets/:id PUT requireAuth controller', () => {
+  test("current user doesn't exists, not authorized by requireAuth common controller", async ({ request }) => {
+    const response = await request.put(`/api/tickets/${generateA32BitUnsignedInteger()}`, {
+      data: generateValidTicketAttributes()
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);

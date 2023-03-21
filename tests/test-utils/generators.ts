@@ -17,7 +17,7 @@ const createRandomMultiplier = (maxZeros: number) => {
 /*
  * Valid price: [1.0, 100000000.99] with MAX_INTEGER 8 and MAX_DECIMALS 2
  */
-export const createAValidPrice = () => {
+export const createAValidPrice = (): string => {
   const integerMultiplier = createRandomMultiplier(MAX_INTEGER);
   const decimalMultiplier = createRandomMultiplier(MAX_DECIMALS);
   // integerMultiplier -> [1, 10, ..., 10**8]
@@ -30,7 +30,7 @@ export const createAValidPrice = () => {
   // [0, 1) * [1, 10, 100] -> [0, 100) -> con floor -> [0, 99]
   // decimalPriceValid -> [0, 99] with MAX_DECIMALS 2
   const decimalPrice = Math.floor(Math.random() * decimalMultiplier).toString();
-  return Number(`${integerPrice}.${decimalPrice}`);
+  return `${integerPrice}.${decimalPrice}`;
 };
 /*
  * With a valid integer part, the decimal part is invalid:
@@ -39,7 +39,7 @@ export const createAValidPrice = () => {
  * With a valid decimal part, the integer part is invalid:
  * invalidIntegerPart -> the digits of the invalid integer part are between [MAX_INTEGER + 1, MAX_INTEGER + 5]
  */
-export const createAnInvalidPrice = () => {
+export const createAnInvalidPrice = (): string => {
   const choice = Math.random() > 0.5 ? 'integer' : 'decimal';
   const validPrice = createAValidPrice();
   let [integer, decimal] = validPrice.toString().split('.');
@@ -100,7 +100,7 @@ export const createACookieSession = (user: { userEmail: string; userId: number }
 export const generateValidTicketAttributes = (): TicketAttributes => {
   return {
     title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-    price: createAValidPrice()
+    price: Number(createAValidPrice())
   };
 };
 

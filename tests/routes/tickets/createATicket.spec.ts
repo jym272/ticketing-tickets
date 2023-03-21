@@ -49,7 +49,7 @@ test.describe('routes: /api/tickets POST checking attributes', () => {
     const response = await request.post('/api/tickets', {
       data: {
         title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-        price: createAnInvalidPrice()
+        price: Number(createAnInvalidPrice())
       },
       headers: { cookie }
     });
@@ -62,7 +62,7 @@ test.describe('routes: /api/tickets POST checking attributes', () => {
     const response = await request.post('/api/tickets', {
       data: {
         title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
-        price: createAValidPrice()
+        price: Number(createAValidPrice())
       },
       headers: { cookie }
     });

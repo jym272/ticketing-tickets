@@ -2,17 +2,15 @@ import { test, expect } from '@playwright/test';
 import {
   logFinished,
   logRunning,
-  createAPrice,
   truncateTicketTable,
-  generateRandomString,
   insertIntoTicketTable,
-  Ticket
+  generateValidTicket,
+  generateA32BitUnsignedInteger
 } from '@tests/test-utils';
+import { Ticket } from '@custom-types/index';
 import { utils } from '@jym272ticketing/common';
 const { httpStatusCodes } = utils;
-import { TICKET_ATTRIBUTES } from '@utils/index';
 const { OK } = httpStatusCodes;
-const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.beforeEach(({}, testInfo) => logRunning(testInfo));
@@ -20,15 +18,11 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
 test.describe('routes: /api/tickets GET tickets', () => {
-  let entry: Ticket;
+  let ticket: Ticket;
   test.beforeAll(async () => {
-    entry = {
-      title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-      price: createAPrice(),
-      userId: '1'
-    };
+    ticket = generateValidTicket(generateA32BitUnsignedInteger());
     await truncateTicketTable();
-    await insertIntoTicketTable(entry);
+    await insertIntoTicketTable(ticket);
   });
   test('retrieve all tickets success', async ({ request }) => {
     const response = await request.get('/api/tickets');
@@ -36,13 +30,13 @@ test.describe('routes: /api/tickets GET tickets', () => {
     expect(response.ok()).toBe(true);
     const bodyParsed = JSON.parse(body.toString()) as Ticket[];
     expect(bodyParsed.length).toBe(1);
-    const newEntry = bodyParsed[0];
-    expect(newEntry.title).toBe(entry.title);
-    expect(newEntry.price).toBe(entry.price);
-    expect(newEntry.userId).toBe(entry.userId);
+    const retrieveTicket = bodyParsed[0];
+    expect(retrieveTicket.title).toBe(ticket.title);
+    expect(retrieveTicket.price).toBe(ticket.price);
+    expect(retrieveTicket.userId).toBe(ticket.userId);
     expect(response.status()).toBe(OK);
-    expect(newEntry.id).toBeDefined();
-    expect(typeof newEntry.id).toBe('number');
+    expect(retrieveTicket.id).toBeDefined();
+    expect(typeof retrieveTicket.id).toBe('number');
   });
 });
 

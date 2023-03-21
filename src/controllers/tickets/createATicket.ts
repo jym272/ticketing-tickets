@@ -3,27 +3,22 @@ import { Ticket, getSequelizeClient } from '@db/index';
 import { TicketAttributes } from '@custom-types/index';
 import { utils } from '@jym272ticketing/common';
 const { httpStatusCodes, throwError } = utils;
-const { UNAUTHORIZED, CREATED, INTERNAL_SERVER_ERROR } = httpStatusCodes;
+const { CREATED, INTERNAL_SERVER_ERROR } = httpStatusCodes;
 const sequelize = getSequelizeClient();
 
 export const createATicketController = () => {
   return async (req: Request, res: Response) => {
     const { title, price } = res.locals as TicketAttributes;
-    const currentUser = req.currentUser;
-    const userId = currentUser?.jti;
-    if (!userId) {
-      return throwError(
-        'Not authorized.',
-        UNAUTHORIZED,
-        new Error(`User Id not found in cookie. The current user is ${JSON.stringify(currentUser)}`)
-      );
-    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- because of requireAuth middleware
+    const currentUser = req.currentUser!;
+    const userId = currentUser.jti;
+
     try {
       const newTicket = await sequelize.transaction(async () => {
         return await Ticket.create({
           title,
           price: Number(price),
-          userId
+          userId: Number(userId)
         });
       });
       return res.status(CREATED).json({ message: 'Ticket created.', ticket: newTicket });

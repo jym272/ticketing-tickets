@@ -6,7 +6,7 @@ export const isValidTitle = (title: string): boolean => {
   return titleRegex.test(title);
 };
 
-export const isValidPrice = (price: string): boolean => {
+export const isValidPrice = (price: number): boolean => {
   const priceRegex = new RegExp(`^\\d{1,${MAX_INTEGER}}(\\.\\d{1,${MAX_DECIMALS}})?$`);
-  return priceRegex.test(price);
+  return priceRegex.test(price.toString());
 };

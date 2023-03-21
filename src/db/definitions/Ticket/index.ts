@@ -19,15 +19,15 @@ export const init = (sequelize: Sequelize) => {
       price: {
         type: DataTypes.DECIMAL,
         allowNull: false,
-        field: 'price'
+        field: 'price',
+        get() {
+          return Number(this.getDataValue('price'));
+        }
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'user_id',
-        validate: {
-          is: /^[1-9]\d*$/
-        }
+        field: 'user_id'
       },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE

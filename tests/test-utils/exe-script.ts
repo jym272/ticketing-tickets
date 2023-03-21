@@ -1,7 +1,7 @@
 import childProcess from 'child_process';
 import { promisify } from 'util';
 import { utils } from '@jym272ticketing/common';
-import { Ticket } from '@tests/test-utils/types';
+import { Ticket } from '@custom-types/index';
 
 const { activateLogging, log } = utils;
 
@@ -15,6 +15,7 @@ export const runPsqlCommand = async (psqlCommand: string, logging = activateLogg
     return stdout;
   } catch (error) {
     log(`Error executing script: ${error as string}`);
+    throw error;
   }
 };
 
@@ -23,7 +24,7 @@ export const truncateTicketTable = async (logging = activateLogging()) => {
 };
 
 export const insertIntoTicketTable = async ({ title, price, userId }: Ticket, logging = activateLogging()) => {
-  const psqlCommand = `insert into "ticket" (title, price, user_id) values ('${title}', ${price}, '${userId}');`;
+  const psqlCommand = `insert into "ticket" (title, price, user_id) values ('${title}', ${price}, ${userId});`;
   await runPsqlCommand(psqlCommand, logging);
 };
 

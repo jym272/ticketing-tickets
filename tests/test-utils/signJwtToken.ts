@@ -4,7 +4,7 @@ import { signJwtTokenOptions } from '@utils/constants';
 const secret = getEnvOrFail('JWT_SECRET');
 
 // TODO: must be common!!! Auth uses it tooo
-export const signJwtToken = ({ userEmail, userId }: { userEmail: string; userId: string }) => {
+export const signJwtToken = ({ userEmail, userId }: { userEmail: string; userId: number }) => {
   const payload = {
     permissions: {
       authenticated: true
@@ -14,7 +14,7 @@ export const signJwtToken = ({ userEmail, userId }: { userEmail: string; userId:
     expiresIn: '1d',
     issuer: signJwtTokenOptions.ISSUER,
     subject: userEmail,
-    jwtid: userId,
+    jwtid: userId.toString(),
     audience: signJwtTokenOptions.AUDIENCE
   };
   return jwt.sign(payload, secret, options);

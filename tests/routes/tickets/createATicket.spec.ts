@@ -3,17 +3,19 @@ import {
   logFinished,
   logRunning,
   parseMessage,
-  priceValidity,
-  createAPrice,
   truncateTicketTable,
   generateRandomString,
-  createACookieSession
+  createACookieSession,
+  generateA32BitUnsignedInteger,
+  generateValidTicketAttributes,
+  createAValidPrice,
+  createAnInvalidPrice
 } from '@tests/test-utils';
 import { utils } from '@jym272ticketing/common';
 const { httpStatusCodes } = utils;
 import { TICKET_ATTRIBUTES } from '@utils/index';
+import { TicketAttributes } from '@custom-types/index';
 const { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, UNAUTHORIZED } = httpStatusCodes;
-const { Valid, Invalid } = priceValidity;
 const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
@@ -21,17 +23,14 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
-let validTicketAttribute: { title: string; price: string };
+let validTicketAttribute: TicketAttributes;
 let cookie: string;
 
 test.beforeAll(() => {
-  validTicketAttribute = {
-    title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-    price: createAPrice()
-  };
+  validTicketAttribute = generateValidTicketAttributes();
   cookie = createACookieSession({
     userEmail: 'a@a.com',
-    userId: '1'
+    userId: generateA32BitUnsignedInteger()
   });
 });
 
@@ -47,12 +46,11 @@ test.describe('routes: /api/tickets POST requireAuth controller', () => {
 
 test.describe('routes: /api/tickets POST checking attributes', () => {
   test('invalid price of a ticket', async ({ request }) => {
-    const ticketAttr = {
-      title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-      price: createAPrice(Invalid)
-    };
     const response = await request.post('/api/tickets', {
-      data: ticketAttr,
+      data: {
+        title: generateRandomString(MAX_VALID_TITLE_LENGTH),
+        price: createAnInvalidPrice()
+      },
       headers: { cookie }
     });
     const message = await parseMessage(response);
@@ -61,12 +59,11 @@ test.describe('routes: /api/tickets POST checking attributes', () => {
     expect(response.status()).toBe(BAD_REQUEST);
   });
   test('invalid title of a ticket', async ({ request }) => {
-    const ticketAttr = {
-      title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
-      price: createAPrice(Valid)
-    };
     const response = await request.post('/api/tickets', {
-      data: ticketAttr,
+      data: {
+        title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
+        price: createAValidPrice()
+      },
       headers: { cookie }
     });
     const message = await parseMessage(response);
@@ -80,24 +77,10 @@ test.describe('routes: /api/tickets POST createATicketController failed', () => 
   test.beforeAll(async () => {
     await truncateTicketTable();
   });
-  test('user Id not found in cookie', async ({ request }) => {
-    const cookieWithoutUserId = createACookieSession({
-      userEmail: 'a@a.com',
-      userId: ''
-    });
-    const response = await request.post('/api/tickets', {
-      data: validTicketAttribute,
-      headers: { cookie: cookieWithoutUserId }
-    });
-    const message = await parseMessage(response);
-    expect(response.ok()).toBe(false);
-    expect(message).toBe('Not authorized.');
-    expect(response.status()).toBe(UNAUTHORIZED);
-  });
   test('invalid userId in cookie', async ({ request }) => {
     const cookieWithInvalidUserId = createACookieSession({
       userEmail: 'a@a.com',
-      userId: 'A1'
+      userId: Math.pow(2, 31)
     });
     const response = await request.post('/api/tickets', {
       data: validTicketAttribute,

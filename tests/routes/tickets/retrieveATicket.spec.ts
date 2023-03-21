@@ -2,19 +2,18 @@ import { test, expect } from '@playwright/test';
 import {
   logFinished,
   logRunning,
-  createAPrice,
   truncateTicketTable,
   generateRandomString,
   insertIntoTicketTable,
-  Ticket,
   selectIdFromTicketTable,
-  parseMessage
+  parseMessage,
+  generateValidTicket,
+  generateA32BitUnsignedInteger
 } from '@tests/test-utils';
 import { utils } from '@jym272ticketing/common';
+import { Ticket } from '@custom-types/index';
 const { httpStatusCodes } = utils;
-import { TICKET_ATTRIBUTES } from '@utils/index';
 const { OK, NOT_FOUND, INTERNAL_SERVER_ERROR } = httpStatusCodes;
-const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.beforeEach(({}, testInfo) => logRunning(testInfo));
@@ -22,22 +21,17 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
 test.describe('routes: /api/tickets/:id GET ticket', () => {
-  let entry: Ticket;
-  let newTicketId: number;
+  let ticket: Ticket;
+  let createdTicketId: number;
   test.beforeAll(async () => {
-    entry = {
-      title: generateRandomString(MAX_VALID_TITLE_LENGTH),
-      price: createAPrice(),
-      userId: '1'
-    };
     await truncateTicketTable();
-    await insertIntoTicketTable(entry);
-    const ids = await selectIdFromTicketTable();
-    newTicketId = ids[0].id;
-    Object.assign(entry, { id: newTicketId });
+    ticket = generateValidTicket(generateA32BitUnsignedInteger());
+    await insertIntoTicketTable(ticket);
+    createdTicketId = (await selectIdFromTicketTable())[0].id;
+    Object.assign(ticket, { id: createdTicketId });
   });
   test('Ticket Not found', async ({ request }) => {
-    const response = await request.get(`/api/tickets/${newTicketId + 1}`);
+    const response = await request.get(`/api/tickets/${createdTicketId + 1}`);
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
     expect(message).toBe('Ticket not found.');
@@ -52,16 +46,16 @@ test.describe('routes: /api/tickets/:id GET ticket', () => {
     expect(response.status()).toBe(INTERNAL_SERVER_ERROR);
   });
   test('get a ticket success', async ({ request }) => {
-    const response = await request.get(`/api/tickets/${newTicketId}`);
+    const response = await request.get(`/api/tickets/${createdTicketId}`);
     const body = await response.body();
     expect(response.ok()).toBe(true);
     const bodyParsed = JSON.parse(body.toString()) as Ticket;
     expect(bodyParsed).toBeDefined();
     const { title, price, userId, id } = bodyParsed;
-    expect(title).toBe(entry.title);
-    expect(price).toBe(entry.price);
-    expect(userId).toBe(entry.userId);
-    expect(id).toBe(entry.id);
+    expect(title).toBe(ticket.title);
+    expect(price).toBe(ticket.price);
+    expect(userId).toBe(ticket.userId);
+    expect(id).toBe(ticket.id);
     expect(response.status()).toBe(OK);
   });
 });

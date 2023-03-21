@@ -120,20 +120,15 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed authorization',
 });
 
 test.describe('routes: /api/tickets/:id PUT update ticket failed because of attributes', () => {
-  test.beforeAll(async () => {
-    userId = generateA32BitUnsignedInteger();
+  test.beforeAll(() => {
     cookie = createACookieSession({
       userEmail: 'a@a.com',
-      userId
+      userId: generateA32BitUnsignedInteger()
     });
-    ticket = generateValidTicket(userId);
-    await truncateTicketTable();
-    await insertIntoTicketTable(ticket);
-    createdTicketId = (await selectIdFromTicketTable())[0].id;
-    Object.assign(ticket, { id: createdTicketId });
   });
   test('invalid price of a ticket', async ({ request }) => {
-    const response = await request.put(`/api/tickets/${createdTicketId}`, {
+    const validTicketId = generateA32BitUnsignedInteger();
+    const response = await request.put(`/api/tickets/${validTicketId}`, {
       data: {
         title: generateRandomString(MAX_VALID_TITLE_LENGTH),
         price: Number(createAnInvalidPrice())
@@ -146,7 +141,8 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed because of attr
     expect(response.status()).toBe(BAD_REQUEST);
   });
   test('invalid title of a ticket', async ({ request }) => {
-    const response = await request.put(`/api/tickets/${createdTicketId}`, {
+    const validTicketId = generateA32BitUnsignedInteger();
+    const response = await request.put(`/api/tickets/${validTicketId}`, {
       data: {
         title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
         price: Number(createAValidPrice())
@@ -162,7 +158,8 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed because of attr
 
 test.describe('routes: /api/tickets/:id PUT requireAuth controller', () => {
   test("current user doesn't exists, not authorized by requireAuth common controller", async ({ request }) => {
-    const response = await request.put(`/api/tickets/${generateA32BitUnsignedInteger()}`, {
+    const validTicketId = generateA32BitUnsignedInteger();
+    const response = await request.put(`/api/tickets/${validTicketId}`, {
       data: generateValidTicketAttributes()
     });
     const message = await parseMessage(response);

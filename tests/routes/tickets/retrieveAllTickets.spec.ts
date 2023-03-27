@@ -4,8 +4,7 @@ import {
   logRunning,
   truncateTicketTable,
   insertIntoTicketTable,
-  generateValidTicket,
-  generateA32BitUnsignedInteger
+  generateValidTicket
 } from '@tests/test-utils';
 import { Ticket } from '@custom-types/index';
 import { utils } from '@jym272ticketing/common';
@@ -20,7 +19,7 @@ test.afterEach(({}, testInfo) => logFinished(testInfo));
 test.describe('routes: /api/tickets GET tickets', () => {
   let ticket: Ticket;
   test.beforeAll(async () => {
-    ticket = generateValidTicket(generateA32BitUnsignedInteger());
+    ticket = generateValidTicket();
     await truncateTicketTable();
     await insertIntoTicketTable(ticket);
   });

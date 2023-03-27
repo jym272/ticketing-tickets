@@ -96,11 +96,17 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed', () => {
 
 test.describe('routes: /api/tickets/:id PUT update ticket failed authorization', () => {
   test.beforeAll(async () => {
-    cookie = createACookieSession({
+    const user = {
       userEmail: 'a@a.com',
       userId: generateA32BitUnsignedInteger()
-    });
-    ticket = generateValidTicket(generateA32BitUnsignedInteger());
+    };
+    cookie = createACookieSession(user);
+
+    let userIdForTicket = generateA32BitUnsignedInteger();
+    while (userIdForTicket === user.userId) {
+      userIdForTicket = generateA32BitUnsignedInteger();
+    }
+    ticket = generateValidTicket(userIdForTicket);
     await truncateTicketTable();
     await insertIntoTicketTable(ticket);
     createdTicketId = (await selectIdFromTicketTable())[0].id;

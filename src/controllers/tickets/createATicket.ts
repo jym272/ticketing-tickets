@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Ticket, getSequelizeClient } from '@db/index';
 import { TicketAttributes } from '@custom-types/index';
 import { utils } from '@jym272ticketing/common';
+import { Subjects } from '@events/nats-jetstream';
+import { publish } from '@events/publishers';
 const { httpStatusCodes, throwError } = utils;
 const { CREATED, INTERNAL_SERVER_ERROR } = httpStatusCodes;
 const sequelize = getSequelizeClient();
@@ -21,6 +23,16 @@ export const createATicketController = () => {
           userId: Number(userId)
         });
       });
+      await publish(Subjects.TicketCreated, 'newvo ticket');
+      // tk created, publish event to nats
+      // await new TicketCreatedPublisher(natsWrapper.client).publish({
+      //   id: newTicket.id,
+      //   title: newTicket.title,
+      //   price: newTicket.price,
+      //   userId: newTicket.userId,
+      //   version: newTicket.version
+      // });
+
       return res.status(CREATED).json({ message: 'Ticket created.', ticket: newTicket });
     } catch (err) {
       let error = new Error(

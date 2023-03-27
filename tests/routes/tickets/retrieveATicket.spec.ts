@@ -7,8 +7,7 @@ import {
   insertIntoTicketTable,
   selectIdFromTicketTable,
   parseMessage,
-  generateValidTicket,
-  generateA32BitUnsignedInteger
+  generateValidTicket
 } from '@tests/test-utils';
 import { utils } from '@jym272ticketing/common';
 import { Ticket } from '@custom-types/index';
@@ -25,7 +24,7 @@ test.describe('routes: /api/tickets/:id GET ticket', () => {
   let createdTicketId: number;
   test.beforeAll(async () => {
     await truncateTicketTable();
-    ticket = generateValidTicket(generateA32BitUnsignedInteger());
+    ticket = generateValidTicket();
     await insertIntoTicketTable(ticket);
     createdTicketId = (await selectIdFromTicketTable())[0].id;
     Object.assign(ticket, { id: createdTicketId });

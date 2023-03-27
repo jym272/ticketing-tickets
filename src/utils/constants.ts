@@ -8,4 +8,7 @@ export const signJwtTokenOptions = {
   ISSUER: 'auth-api',
   AUDIENCE: 'ticketing-frontend'
 };
+
+export const STREAM_NOT_FOUND = 'no stream matches subject';
+
 export const rocketEmoji = String.fromCodePoint(0x1f680);

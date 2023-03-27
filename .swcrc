@@ -14,7 +14,8 @@
       "@utils/*": ["./src/utils/*"],
       "@db/*": ["./src/db/*"],
       "@custom-types/*": ["./src/types/*"],
-      "@tests/*": ["./tests/*"]
+      "@tests/*": ["./tests/*"],
+      "@events/*": ["./src/events/*"],
     },
     "baseUrl": "."
   },

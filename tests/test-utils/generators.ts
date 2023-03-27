@@ -4,6 +4,11 @@ import { signJwtToken } from '@tests/test-utils/signJwtToken';
 import { Ticket, TicketAttributes } from '@custom-types/index';
 const { MAX_VALID_TITLE_LENGTH, MAX_INTEGER, MAX_DECIMALS } = TICKET_ATTRIBUTES;
 
+const possibleValuesInt32 = Math.pow(2, 32);
+// possibleValues  - negativeValues - zero = positiveValues
+// Math.pow(2, 32) - Math.pow(2, 31) -1 = Math.pow(2, 31) - 1
+const maxValueInt32 = Math.pow(2, 31) - 1;
+
 const createRandomMultiplier = (maxZeros: number) => {
   if (maxZeros < 0) throw new Error('maxZeros must be greater than or equal to 0');
   const validValues = [];
@@ -79,17 +84,87 @@ export const generateRandomString = (maxStringLength: number, fixedLength = fals
   if (isNaN(Number(generatedString))) return generatedString;
   return generateRandomString(maxStringLength, fixedLength);
 };
-// generateA32BitUnsignedInteger -> [1, 2^32 - 1]
-export const generateA32BitUnsignedInteger = () => {
-  //by definition, 32-bit unsigned integers can only be between 0 and 2^32 - 1
-  const maxNumber = Math.pow(2, 31) - 1;
-  const numberOfDigitsInMaxNumber = maxNumber.toString().length;
-  // power [0,9]
-  const power = Math.floor(Math.random() * numberOfDigitsInMaxNumber);
-  // rand is between (0,1]
-  const rand = 1 - Math.random();
-  return Math.ceil(rand * maxNumber * Math.pow(10, -power));
+
+export const generateA32BitUnsignedInteger = (min = 1, max = maxValueInt32) => {
+  /*
+  Tests results with limits: min = 1, max =  Math.pow(2, 31) - 1
+  Total repetitions: 45980
+  Total numbers: 10000000
+  Unique numbers: 9954020
+  Percentage of unique numbers: 99.540% -> depends entirely on the limits -> max - min ~ max
+                                expected -> the max is a big value
+  {
+    '3': 4, 4 numbers with 3 digits -> 0.000% of total numbers
+    '4': 47, -> 0.000% of total numbers
+    '5': 430, -> 0.004% of total numbers
+    '6': 4228, -> 0.042% of total numbers
+    '7': 41692, -> 0.417% of total numbers
+    '8': 419498, -> 4.195% of total numbers
+    '9': 4192876, -> 41.929% of total numbers
+    '10': 5341226 -> 53.412% of total numbers
+  }
+  1 number repeated 4 times -> 0.000% of total numbers
+  34 numbers repeated 3 times -> 0.000% of total numbers
+  22937 numbers repeated 2 times -> 0.459% of total numbers
+  */
+  if (min < 1 || max > maxValueInt32 || min > max) {
+    throw new Error('Invalid range');
+  }
+  if (!Number.isInteger(min) || !Number.isInteger(max)) {
+    throw new Error('min and max must be integers');
+  }
+  const range = max - min + 1;
+  const buffer = crypto.randomBytes(4);
+  // number -> (0, 2^32)
+  const number = buffer.readUInt32BE(0);
+  // operation =  number * range / (2^32)
+  // number / (2^32) -> (0, 2^32) / (2^32) -> (0, 1)
+  // (0, 1) * range -> (0, range)
+  // scaled -> Math.floor(operation) -> [0, range)
+  const scaled = Math.floor(number / (possibleValuesInt32 / range));
+  // scaled + min -> [0, range) -> + min -> [min, range + min)
+  //        -> [min, max - min +1 + min) -> [min, max+1)
+  //        -> [min, max]
+  return scaled + min;
 };
+
+export const generateA32BitUnsignedIntegerBetterDigitDistribution = (min = 1, max = maxValueInt32) => {
+  /*
+    Tests results with limits: min = 1, max =  Math.pow(2, 31) - 1
+    Total repetitions: 6402193
+    Total numbers: 10000000
+    Unique numbers: 3597807
+    Percentage of unique numbers: 35.978%
+   {
+      '1': 1058793, 1058793 numbers with 1 digit -> 10.588% of total numbers
+      '2': 1059847, -> 10.598% of total numbers
+      '3': 1060338, -> 10.603% of total numbers
+      '4': 1059588, -> 10.596% of total numbers
+      '5': 1056814, -> 10.568% of total numbers
+      '6': 1058643, -> 10.586% of total numbers
+      '7': 1058243, -> 10.582% of total numbers
+      '8': 1052351, -> 10.524% of total numbers
+      '9': 1000421, -> 10.004% of total numbers
+      '10': 534963 -> 5.350% of total numbers
+    }
+    Number 1 repeated 523582 times -> 5.236% of total numbers
+    Number 2 repeated 126878 times -> 1.269% of total numbers
+    Number 8 repeated 58823 times -> 0.588% of total numbers
+    Number 6 repeated 58589 times -> 0.586% of total numbers
+    Number 4 repeated 58400 times -> 0.584% of total numbers
+    Number 5 repeated 58287 times -> 0.583% of total numbers
+    Number 7 repeated 58207 times -> 0.582% of total numbers
+    Number 3 repeated 58112 times -> 0.581% of total numbers
+    Number 9 repeated 57915 times -> 0.579% of total numbers
+    Number 14 repeated 52740 times -> 0.527% of total numbers
+   */
+  const result = generateA32BitUnsignedInteger(min, max);
+  const maxLengthDigit = result.toString().length;
+  const minLengthDigit = 1;
+  const index = Math.floor(Math.random() * (maxLengthDigit - minLengthDigit + 1) + minLengthDigit);
+  return Number(result.toString().slice(0, index));
+};
+
 export const createACookieSession = (user: { userEmail: string; userId: number }) => {
   const token = signJwtToken(user);
   const session = JSON.stringify({ jwt: token });
@@ -104,7 +179,7 @@ export const generateValidTicketAttributes = (): TicketAttributes => {
   };
 };
 
-export const generateValidTicket = (userId: number): Ticket => {
+export const generateValidTicket = (userId: number = generateA32BitUnsignedInteger()): Ticket => {
   return {
     ...generateValidTicketAttributes(),
     userId

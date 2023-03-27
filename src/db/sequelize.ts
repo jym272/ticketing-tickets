@@ -35,5 +35,3 @@ export const initializeSequelize = async (sequelize: Sequelize) => {
   initDefinitions(sequelize);
   await sequelize.sync();
 };
-
-export const closeSequelizeClient = (sequelize: Sequelize) => sequelize.close();

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { Ticket } from '@db/models';
 import { throwError, httpStatusCodes } from '@jym272ticketing/common/dist/utils';
 import { TicketAttributes } from '@custom-types/index';
+import { publish } from '@events/publishers';
+import { Subjects } from '@events/nats-jetstream';
 const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED } = httpStatusCodes;
 
 export const updateATicketController = () => {
@@ -34,8 +36,10 @@ export const updateATicketController = () => {
       );
     }
     const { title, price } = res.locals as TicketAttributes;
+    // refactor with transaction TODO
     ticket.set({ title, price: Number(price) });
     await ticket.save();
+    await publish(Subjects.TicketUpdated, 'se ha realizao un update un ticket');
     res.json(ticket);
   };
 };

@@ -20,6 +20,10 @@ export PASSWORD_PEPPER=$random_secret
 random_secret=$(get_random_secret)
 export JWT_SECRET=$random_secret
 
+export NATS_SERVER_HOST=localhost
+nats_server_port=$(get_random_port_not_used)
+export NATS_SERVER_PORT=$nats_server_port
+
 echo -e "\e[1;32mPostgres db\e[0m"
 export COMPOSE_PROJECT_NAME=tickets-api-test
 docker compose -f "$dir"/docker-compose.test.yml up -d

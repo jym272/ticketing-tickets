@@ -23,7 +23,7 @@ export const createATicketController = () => {
           userId: Number(userId)
         });
       });
-      await publish(Subjects.TicketCreated, 'newvo ticket');
+      await publish(Subjects.TicketCreated, 'se ha crado un ticket');
       // tk created, publish event to nats
       // await new TicketCreatedPublisher(natsWrapper.client).publish({
       //   id: newTicket.id,

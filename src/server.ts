@@ -32,18 +32,11 @@ void (async () => {
   }
 })();
 
-enum EventNames {
-  SIGINT = 'SIGINT',
-  SIGTERM = 'SIGTERM'
-}
-
-const listener = async (signal: NodeJS.Signals) => {
-  log(`Caught ${signal} signal`);
+const listener = async () => {
   const nc = await getNatsConnection();
   await nc.drain();
-  log('Connection to nats drained');
   process.exit();
 };
 
-process.on(EventNames.SIGINT, listener);
-process.on(EventNames.SIGTERM, listener);
+process.on('SIGINT', listener);
+process.on('SIGTERM', listener);

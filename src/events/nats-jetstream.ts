@@ -13,8 +13,9 @@ import { STREAM_NOT_FOUND } from '@utils/constants';
 import { log } from '@jym272ticketing/common/dist/utils';
 import { getEnvOrFail } from '@utils/env';
 
-let nc: NatsConnection | undefined;
-let js: JetStreamClient | undefined;
+//exporting for the test probe
+export let nc: NatsConnection | undefined;
+export let js: JetStreamClient | undefined;
 // refacotorizacion igual a la de http codes
 export enum Subjects { //TODO: one enum per service instead of one global enum, in that case arg for getProps
   TicketCreated = 'tickets.created',
@@ -50,11 +51,11 @@ const getProps = () =>
 
 const natsServerUrl = `nats://${getEnvOrFail('NATS_SERVER_HOST')}:${getEnvOrFail('NATS_SERVER_PORT')}`;
 
-export const getNatsConnection = async () => {
+const getNatsConnection = async () => {
   if (nc) {
     return nc;
   }
-  nc = await connect({ servers: natsServerUrl });
+  nc = await connect({ servers: natsServerUrl, maxReconnectAttempts: 5 });
   return nc;
 };
 
@@ -110,7 +111,7 @@ const verifyConsumer = async (jsm: JetStreamManager, uniqueConsumer: UniqueConsu
 //   // opts.bind(stream, durableName);
 // };
 
-export const getJetStreamClient = async () => {
+const getJetStreamClient = async () => {
   if (js) {
     return js;
   }
@@ -128,3 +129,16 @@ export const getJetStreamClient = async () => {
 };
 
 export const sc = StringCodec();
+
+const monitorNatsConnectionStatus = async () => {
+  const nc = await getNatsConnection();
+  for await (const status of nc.status()) {
+    // logs with chalk TODO with color according to type
+    log('nats status: ', { data: status.data, type: status.type });
+  }
+};
+
+export const startJetStream = async () => {
+  await getJetStreamClient();
+  void monitorNatsConnectionStatus();
+};

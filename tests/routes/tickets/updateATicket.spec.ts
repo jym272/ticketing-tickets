@@ -45,12 +45,14 @@ test.describe('routes: /api/tickets/:id PUT update ticket', () => {
     expect(response.status()).toBe(OK);
     const { ticket: resTk, message, seq } = (await response.json()) as { ticket: Ticket; message: string; seq: number };
     expect(ticket).toBeDefined();
-    const { title, price, id, userId: ui } = resTk;
+    const { title, price, id, userId: ui, version } = resTk;
     expect(title).toBe(data.title);
     expect(price).toBe(data.price);
     expect(ui).toBe(user1.userId);
     expect(id).toBe(ticket.id);
     expect(message).toBe('Ticket updated.');
+    expect(version).toBe(ticket.version + 1);
+    expect(version).toBe(1);
 
     /*Testing the publish Event*/
     const seqData = await getSequenceDataFromNats<{ [TicketSubjects.TicketUpdated]: Ticket }>(Streams.TICKETS, seq);
@@ -67,6 +69,7 @@ test.describe('routes: /api/tickets/:id PUT update ticket', () => {
     expect(seqDataTicket).toHaveProperty('price', data.price);
     expect(seqDataTicket).toHaveProperty('createdAt');
     expect(seqDataTicket).toHaveProperty('updatedAt');
+    expect(seqDataTicket).toHaveProperty('version', ticket.version + 1);
   });
 });
 

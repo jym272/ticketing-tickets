@@ -28,12 +28,18 @@ export const init = (sequelize: Sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false
       },
+      version: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE
     },
     {
       sequelize,
-      tableName: 'ticket'
+      tableName: 'ticket',
+      version: true
     }
   );
 };

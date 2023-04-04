@@ -26,8 +26,7 @@ export const init = (sequelize: Sequelize) => {
       },
       userId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        field: 'user_id'
+        allowNull: false
       },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE

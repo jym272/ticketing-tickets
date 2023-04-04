@@ -1,24 +1,24 @@
 import { test, expect } from '@playwright/test';
-import {
-  logFinished,
+import { utils, events } from '@jym272ticketing/common';
+const {
+  httpStatusCodes,
   logRunning,
-  truncateTicketTable,
-  generateRandomString,
-  insertIntoTicketTable,
-  selectIdFromTicketTable,
+  logFinished,
+  createUniqueUser,
+  insertIntoTableWithReturnJson,
+  generateTicketAttributes,
+  truncateTables,
+  getSequenceDataFromNats,
   parseMessage,
-  createACookieSession,
+  generateRandomString,
   generateA32BitUnsignedInteger,
-  generateValidTicketAttributes,
-  generateValidTicket,
   createAnInvalidPrice,
-  createAValidPrice
-} from '@tests/test-utils';
-import { utils } from '@jym272ticketing/common';
-const { httpStatusCodes } = utils;
-import { Ticket } from '@custom-types/index';
-import { TICKET_ATTRIBUTES } from '@utils/constants';
-const { OK, NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST } = httpStatusCodes;
+  createAValidPrice,
+  TICKET_ATTRIBUTES
+} = utils;
+import { Ticket } from '@db/models';
+const { Streams, TicketSubjects } = events;
+const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST, OK } = httpStatusCodes;
 const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
@@ -26,55 +26,59 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
-let cookie: string;
-let userId: number;
+const user1 = createUniqueUser();
+const user2 = createUniqueUser();
+
 let ticket: Ticket;
-let createdTicketId: number;
 test.describe('routes: /api/tickets/:id PUT update ticket', () => {
   test.beforeAll(async () => {
-    await truncateTicketTable();
-    userId = generateA32BitUnsignedInteger();
-    cookie = createACookieSession({
-      userEmail: 'a@a.com',
-      userId
-    });
-    ticket = generateValidTicket(userId);
-    await insertIntoTicketTable(ticket);
-    createdTicketId = (await selectIdFromTicketTable())[0].id;
-    Object.assign(ticket, { id: createdTicketId });
+    await truncateTables('ticket');
+    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
   });
   test('update a ticket success', async ({ request }) => {
-    const data = generateValidTicketAttributes();
-    const response = await request.put(`/api/tickets/${createdTicketId}`, {
+    const data = generateTicketAttributes();
+    const response = await request.put(`/api/tickets/${ticket.id}`, {
       data,
-      headers: { cookie }
+      headers: { cookie: user1.cookie }
     });
-    const body = await response.body();
     expect(response.ok()).toBe(true);
-    const bodyParsed = JSON.parse(body.toString()) as Ticket;
-    expect(bodyParsed).toBeDefined();
-    const { title, price, id } = bodyParsed;
+    expect(response.status()).toBe(OK);
+    const { ticket: resTk, message, seq } = (await response.json()) as { ticket: Ticket; message: string; seq: number };
+    expect(ticket).toBeDefined();
+    const { title, price, id, userId: ui } = resTk;
     expect(title).toBe(data.title);
     expect(price).toBe(data.price);
-    expect(bodyParsed.userId).toBe(userId);
+    expect(ui).toBe(user1.userId);
     expect(id).toBe(ticket.id);
-    expect(response.status()).toBe(OK);
+    expect(message).toBe('Ticket updated.');
+
+    /*Testing the publish Event*/
+    const seqData = await getSequenceDataFromNats<{ [TicketSubjects.TicketUpdated]: Ticket }>(Streams.TICKETS, seq);
+    expect(seqData).toBeDefined();
+    expect(seqData).toHaveProperty('subject', TicketSubjects.TicketUpdated);
+    expect(seqData).toHaveProperty('seq', seq);
+    expect(seqData).toHaveProperty('data');
+    expect(seqData).toHaveProperty('time'); //of the nats server arrival
+    expect(seqData.data[TicketSubjects.TicketUpdated]).toBeDefined();
+    const seqDataTicket = seqData.data[TicketSubjects.TicketUpdated];
+    expect(seqDataTicket).toHaveProperty('id', ticket.id);
+    expect(seqDataTicket).toHaveProperty('userId', ticket.userId);
+    expect(seqDataTicket).toHaveProperty('title', data.title);
+    expect(seqDataTicket).toHaveProperty('price', data.price);
+    expect(seqDataTicket).toHaveProperty('createdAt');
+    expect(seqDataTicket).toHaveProperty('updatedAt');
   });
 });
 
 test.describe('routes: /api/tickets/:id PUT update ticket failed', () => {
   test.beforeEach(async () => {
-    await truncateTicketTable();
-    cookie = createACookieSession({
-      userEmail: 'a@a.com',
-      userId: generateA32BitUnsignedInteger()
-    });
+    await truncateTables('ticket');
   });
   test('invalid id in parameter request', async ({ request }) => {
     const invalidId = generateRandomString(5);
     const response = await request.put(`/api/tickets/${invalidId}`, {
-      data: generateValidTicketAttributes(),
-      headers: { cookie }
+      data: generateTicketAttributes(),
+      headers: { cookie: user1.cookie }
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
@@ -84,8 +88,8 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed', () => {
   test('Ticket Not found', async ({ request }) => {
     const validTicketId = generateA32BitUnsignedInteger();
     const response = await request.put(`/api/tickets/${validTicketId}`, {
-      data: generateValidTicketAttributes(),
-      headers: { cookie }
+      data: generateTicketAttributes(),
+      headers: { cookie: user1.cookie }
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
@@ -96,27 +100,14 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed', () => {
 
 test.describe('routes: /api/tickets/:id PUT update ticket failed authorization', () => {
   test.beforeAll(async () => {
-    const user = {
-      userEmail: 'a@a.com',
-      userId: generateA32BitUnsignedInteger()
-    };
-    cookie = createACookieSession(user);
-
-    let userIdForTicket = generateA32BitUnsignedInteger();
-    while (userIdForTicket === user.userId) {
-      userIdForTicket = generateA32BitUnsignedInteger();
-    }
-    ticket = generateValidTicket(userIdForTicket);
-    await truncateTicketTable();
-    await insertIntoTicketTable(ticket);
-    createdTicketId = (await selectIdFromTicketTable())[0].id;
-    Object.assign(ticket, { id: createdTicketId });
+    await truncateTables('ticket');
+    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
   });
 
   test('userId in cookie payload is not the same as the userId found in the ticket in db', async ({ request }) => {
-    const response = await request.put(`/api/tickets/${createdTicketId}`, {
-      data: generateValidTicketAttributes(),
-      headers: { cookie }
+    const response = await request.put(`/api/tickets/${ticket.id}`, {
+      data: generateTicketAttributes(),
+      headers: { cookie: user2.cookie }
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
@@ -126,12 +117,6 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed authorization',
 });
 
 test.describe('routes: /api/tickets/:id PUT update ticket failed because of attributes', () => {
-  test.beforeAll(() => {
-    cookie = createACookieSession({
-      userEmail: 'a@a.com',
-      userId: generateA32BitUnsignedInteger()
-    });
-  });
   test('invalid price of a ticket', async ({ request }) => {
     const validTicketId = generateA32BitUnsignedInteger();
     const response = await request.put(`/api/tickets/${validTicketId}`, {
@@ -139,7 +124,7 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed because of attr
         title: generateRandomString(MAX_VALID_TITLE_LENGTH),
         price: Number(createAnInvalidPrice())
       },
-      headers: { cookie }
+      headers: { cookie: user1.cookie }
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
@@ -153,7 +138,7 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed because of attr
         title: generateRandomString(MAX_VALID_TITLE_LENGTH + 1, true),
         price: Number(createAValidPrice())
       },
-      headers: { cookie }
+      headers: { cookie: user1.cookie }
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
@@ -166,7 +151,7 @@ test.describe('routes: /api/tickets/:id PUT requireAuth controller', () => {
   test("current user doesn't exists, not authorized by requireAuth common controller", async ({ request }) => {
     const validTicketId = generateA32BitUnsignedInteger();
     const response = await request.put(`/api/tickets/${validTicketId}`, {
-      data: generateValidTicketAttributes()
+      data: generateTicketAttributes()
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);

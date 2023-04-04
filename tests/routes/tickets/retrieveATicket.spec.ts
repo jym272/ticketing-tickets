@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test';
-import {
-  logFinished,
-  logRunning,
-  truncateTicketTable,
-  generateRandomString,
-  insertIntoTicketTable,
-  selectIdFromTicketTable,
-  parseMessage,
-  generateValidTicket
-} from '@tests/test-utils';
 import { utils } from '@jym272ticketing/common';
-import { Ticket } from '@custom-types/index';
-const { httpStatusCodes } = utils;
+import { Ticket } from '@db/models';
+const {
+  httpStatusCodes,
+  insertIntoTableWithReturnJson,
+  createUniqueUser,
+  logFinished,
+  generateTicketAttributes,
+  logRunning,
+  truncateTables,
+  generateRandomString,
+  parseMessage
+} = utils;
 const { OK, NOT_FOUND, INTERNAL_SERVER_ERROR } = httpStatusCodes;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
@@ -19,18 +19,16 @@ test.beforeEach(({}, testInfo) => logRunning(testInfo));
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
 test.afterEach(({}, testInfo) => logFinished(testInfo));
 
+const user1 = createUniqueUser();
+
 test.describe('routes: /api/tickets/:id GET ticket', () => {
   let ticket: Ticket;
-  let createdTicketId: number;
   test.beforeAll(async () => {
-    await truncateTicketTable();
-    ticket = generateValidTicket();
-    await insertIntoTicketTable(ticket);
-    createdTicketId = (await selectIdFromTicketTable())[0].id;
-    Object.assign(ticket, { id: createdTicketId });
+    await truncateTables('ticket');
+    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
   });
   test('Ticket Not found', async ({ request }) => {
-    const response = await request.get(`/api/tickets/${createdTicketId + 1}`);
+    const response = await request.get(`/api/tickets/${ticket.id + 1}`);
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
     expect(message).toBe('Ticket not found.');
@@ -45,7 +43,7 @@ test.describe('routes: /api/tickets/:id GET ticket', () => {
     expect(response.status()).toBe(INTERNAL_SERVER_ERROR);
   });
   test('get a ticket success', async ({ request }) => {
-    const response = await request.get(`/api/tickets/${createdTicketId}`);
+    const response = await request.get(`/api/tickets/${ticket.id}`);
     const body = await response.body();
     expect(response.ok()).toBe(true);
     const bodyParsed = JSON.parse(body.toString()) as Ticket;

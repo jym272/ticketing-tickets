@@ -45,7 +45,7 @@ export const updateATicketController = () => {
         ticket?.set({ title, price: Number(price) });
         await ticket?.save();
         const pa = await publish(ticket, subjects.TicketUpdated);
-        seq = pa.seq; // TODO: testea
+        seq = pa.seq;
       });
     } catch (err) {
       const error = parseSequelizeError(

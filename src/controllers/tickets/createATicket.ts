@@ -15,6 +15,7 @@ export const createATicketController = () => {
     const currentUser = req.currentUser!;
     const userId = currentUser.jti;
 
+    let seq;
     try {
       const ticket = await sequelize.transaction(async () => {
         const newTicket = await Ticket.create({
@@ -22,12 +23,14 @@ export const createATicketController = () => {
           price: Number(price),
           userId: Number(userId)
         });
-        await publish(newTicket, subjects.TicketCreated);
+        const pa = await publish(newTicket, subjects.TicketCreated);
+        seq = pa.seq;
+        return newTicket;
       });
-      return res.status(CREATED).json({ message: 'Ticket created.', ticket });
+      return res.status(CREATED).json({ message: 'Ticket created.', ticket, seq });
     } catch (err) {
       const error = parseSequelizeError(err, `Creating ticket failed. currentUser ${JSON.stringify(currentUser)}`);
-      return throwError('Creating ticket failed.', INTERNAL_SERVER_ERROR, error);
+      return throwError('Creating Ticket failed.', INTERNAL_SERVER_ERROR, error);
     }
   };
 };

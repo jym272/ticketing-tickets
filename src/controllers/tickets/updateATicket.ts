@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import { Ticket } from '@db/models';
-import { throwError, httpStatusCodes } from '@jym272ticketing/common/dist/utils';
+import { utils, events } from '@jym272ticketing/common';
 import { TicketAttributes } from '@custom-types/index';
-import { publish } from '@events/publishers';
-import { Subjects } from '@events/nats-jetstream';
-const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED } = httpStatusCodes;
+import { getSequelizeClient } from '@db/sequelize';
+
+const { throwError, httpStatusCodes, parseSequelizeError } = utils;
+const { publish, subjects } = events;
+const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, OK } = httpStatusCodes;
+const sequelize = getSequelizeClient();
 
 export const updateATicketController = () => {
   return async (req: Request, res: Response) => {
@@ -13,14 +16,14 @@ export const updateATicketController = () => {
     const currentUser = req.currentUser!;
     const userId = currentUser.jti;
 
-    let ticket;
+    let ticket: Ticket | null;
     try {
       ticket = await Ticket.findByPk(id);
     } catch (err) {
-      let error = new Error(`Finding ticket failed. id ${id}.`);
-      if (err instanceof Error) {
-        error = err;
-      }
+      const error = parseSequelizeError(
+        err,
+        `Finding ticket failed. id ${id}. currentUser ${JSON.stringify(currentUser)}`
+      );
       return throwError('Finding ticket failed.', INTERNAL_SERVER_ERROR, error);
     }
     if (!ticket) {
@@ -36,10 +39,21 @@ export const updateATicketController = () => {
       );
     }
     const { title, price } = res.locals as TicketAttributes;
-    // refactor with transaction TODO
-    ticket.set({ title, price: Number(price) });
-    await ticket.save();
-    await publish(Subjects.TicketUpdated, 'se ha realizao un update un ticket');
-    res.json(ticket);
+    let seq;
+    try {
+      await sequelize.transaction(async () => {
+        ticket?.set({ title, price: Number(price) });
+        await ticket?.save();
+        const pa = await publish(ticket, subjects.TicketUpdated);
+        seq = pa.seq; // TODO: testea
+      });
+    } catch (err) {
+      const error = parseSequelizeError(
+        err,
+        `Updating ticket failed. id ${id}. currentUser ${JSON.stringify(currentUser)}`
+      );
+      return throwError('Updating ticket failed.', INTERNAL_SERVER_ERROR, error);
+    }
+    return res.status(OK).json({ ticket, seq, message: 'Ticket updated.' });
   };
 };

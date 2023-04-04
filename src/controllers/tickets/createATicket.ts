@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { Ticket, getSequelizeClient } from '@db/index';
 import { TicketAttributes } from '@custom-types/index';
-import { utils } from '@jym272ticketing/common';
-import { Subjects } from '@events/nats-jetstream';
-import { publish } from '@events/publishers';
-const { httpStatusCodes, throwError } = utils;
+import { utils, events } from '@jym272ticketing/common';
+
+const { httpStatusCodes, throwError, parseSequelizeError } = utils;
+const { publish, subjects } = events;
 const { CREATED, INTERNAL_SERVER_ERROR } = httpStatusCodes;
 const sequelize = getSequelizeClient();
 
@@ -16,32 +16,18 @@ export const createATicketController = () => {
     const userId = currentUser.jti;
 
     try {
-      const newTicket = await sequelize.transaction(async () => {
-        return await Ticket.create({
+      const ticket = await sequelize.transaction(async () => {
+        const newTicket = await Ticket.create({
           title,
           price: Number(price),
           userId: Number(userId)
         });
+        await publish(newTicket, subjects.TicketCreated);
       });
-      await publish(Subjects.TicketCreated, 'se ha crado un ticket');
-      // tk created, publish event to nats
-      // await new TicketCreatedPublisher(natsWrapper.client).publish({
-      //   id: newTicket.id,
-      //   title: newTicket.title,
-      //   price: newTicket.price,
-      //   userId: newTicket.userId,
-      //   version: newTicket.version
-      // });
-
-      return res.status(CREATED).json({ message: 'Ticket created.', ticket: newTicket });
+      return res.status(CREATED).json({ message: 'Ticket created.', ticket });
     } catch (err) {
-      let error = new Error(
-        `Creating Ticket failed. title ${title}. price ${price}. currentUser ${JSON.stringify(currentUser)}`
-      );
-      if (err instanceof Error) {
-        error = err;
-      }
-      throwError('Creating Ticket failed.', INTERNAL_SERVER_ERROR, error);
+      const error = parseSequelizeError(err, `Creating ticket failed. currentUser ${JSON.stringify(currentUser)}`);
+      return throwError('Creating ticket failed.', INTERNAL_SERVER_ERROR, error);
     }
   };
 };

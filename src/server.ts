@@ -1,8 +1,10 @@
 import { initializeSetup, startSetup } from './setup';
-import { utils } from '@jym272ticketing/common';
+import { utils, events } from '@jym272ticketing/common';
 const { log, successConnectionMsg } = utils;
+const { subjects, subscribe } = events;
 import { getEnvOrFail, rocketEmoji } from '@utils/index';
 import { nc, startJetStream, Streams } from '@jym272ticketing/common/dist/events';
+import { orderCancelledListener, orderCreatedListener } from '@events/listeners';
 
 const { server } = initializeSetup();
 
@@ -11,7 +13,7 @@ const PORT = getEnvOrFail('PORT');
 void (async () => {
   try {
     await startJetStream({
-      streams: [Streams.TICKETS],
+      streams: [Streams.TICKETS, Streams.ORDERS],
       nats: {
         url: `nats://${getEnvOrFail('NATS_SERVER_HOST')}:${getEnvOrFail('NATS_SERVER_PORT')}`
       }
@@ -19,8 +21,8 @@ void (async () => {
     await startSetup(server);
     server.listen(PORT, () => successConnectionMsg(`${rocketEmoji} Server is running on port ${PORT}`));
     // TODO: logs red and green and yellow with chalk
-    // void subscribe(subjects.TicketCreated, ticketListener);
-    // void subscribe(subjects.TicketUpdated, ticketListener);
+    void subscribe(subjects.OrderCreated, orderCreatedListener);
+    void subscribe(subjects.OrderCancelled, orderCancelledListener);
   } catch (error) {
     log(error);
     process.exitCode = 1;

@@ -20,6 +20,7 @@ export PASSWORD_PEPPER=$random_secret
 random_secret=$(get_random_secret)
 export JWT_SECRET=$random_secret
 
+export NACK_DELAY_MS=1000
 export NATS_SERVER_HOST=localhost
 nats_server_port=$(get_random_port_not_used)
 export NATS_SERVER_PORT=$nats_server_port

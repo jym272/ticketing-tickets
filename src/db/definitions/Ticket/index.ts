@@ -33,6 +33,10 @@ export const init = (sequelize: Sequelize) => {
         allowNull: false,
         defaultValue: 0
       },
+      orderId: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE
     },

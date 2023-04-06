@@ -6,6 +6,7 @@ export class Ticket extends Model<InferAttributes<Ticket>, InferCreationAttribut
   declare title: string;
   declare price: number;
   declare userId: number;
+  declare orderId: CreationOptional<number | null>; // for locking the ticket
   declare version: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;

@@ -14,11 +14,13 @@ const {
   generateA32BitUnsignedInteger,
   createAnInvalidPrice,
   createAValidPrice,
-  TICKET_ATTRIBUTES
+  TICKET_ATTRIBUTES,
+  publishToSubject,
+  log
 } = utils;
 import { Ticket } from '@db/models';
-const { Streams, TicketSubjects } = events;
-const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST, OK } = httpStatusCodes;
+const { Streams, TicketSubjects, subjects } = events;
+const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST, OK, FORBIDDEN } = httpStatusCodes;
 const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
@@ -29,7 +31,40 @@ test.afterEach(({}, testInfo) => logFinished(testInfo));
 const user1 = createUniqueUser();
 const user2 = createUniqueUser();
 
+/*
+  If the test fails increase the graceTime
+ */
+const graceTime = 50;
+
 let ticket: Ticket;
+test.describe('routes: /api/tickets/:id PUT update ticket while is lockdown ', () => {
+  let orderId: number;
+  test.beforeAll(async () => {
+    await truncateTables('ticket');
+    orderId = generateA32BitUnsignedInteger();
+    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
+    // the tk just created is also  in orders-api
+  });
+  test('failed because the ticket is lockdown', async ({ request }) => {
+    // event published by orders api, an order with the ticket is created, the ticket is now locked
+    await publishToSubject(subjects.OrderCreated, {
+      [subjects.OrderCreated]: { id: orderId, ticket }
+    });
+
+    log(`waiting ${graceTime} ms for the listener to process the events`);
+    await new Promise(resolve => setTimeout(resolve, graceTime));
+
+    const response = await request.put(`/api/tickets/${ticket.id}`, {
+      data: generateTicketAttributes(),
+      headers: { cookie: user1.cookie }
+    });
+    expect(response.ok()).toBe(false);
+    expect(response.status()).toBe(FORBIDDEN);
+    const { message } = (await response.json()) as { message: string };
+    expect(message).toBe('Ticket is reserved.');
+  });
+});
+
 test.describe('routes: /api/tickets/:id PUT update ticket', () => {
   test.beforeAll(async () => {
     await truncateTables('ticket');

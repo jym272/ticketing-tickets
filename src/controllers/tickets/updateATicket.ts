@@ -6,7 +6,7 @@ import { getSequelizeClient } from '@db/sequelize';
 
 const { throwError, httpStatusCodes, parseSequelizeError } = utils;
 const { publish, subjects } = events;
-const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, OK } = httpStatusCodes;
+const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, OK, FORBIDDEN } = httpStatusCodes;
 const sequelize = getSequelizeClient();
 
 export const updateATicketController = () => {
@@ -37,6 +37,9 @@ export const updateATicketController = () => {
           `userId in cookie payload: ${userId} is not the same as the userId found in the ticket: ${ticket.userId}`
         )
       );
+    }
+    if (ticket.orderId) {
+      return throwError('Ticket is reserved.', FORBIDDEN);
     }
     const { title, price } = res.locals as TicketAttributes;
     let seq;

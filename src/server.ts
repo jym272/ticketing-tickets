@@ -22,7 +22,7 @@ void (async () => {
     server.listen(PORT, () => successConnectionMsg(`${rocketEmoji} Server is running on port ${PORT}`));
     // TODO: logs red and green and yellow with chalk
     void subscribe(subjects.OrderCreated, orderCreatedListener);
-    void subscribe(subjects.OrderCancelled, orderCancelledListener);
+    void subscribe(subjects.OrderUpdated, orderCancelledListener);
   } catch (error) {
     log(error);
     process.exitCode = 1;

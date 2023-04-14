@@ -8,4 +8,5 @@ export interface TicketAttributes {
 export interface Order {
   id: number;
   ticket: Ticket;
+  status: string;
 }

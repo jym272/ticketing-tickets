@@ -9,6 +9,7 @@ const {
   publishToSubject,
   truncateTables,
   runPsqlCommand,
+  OrderStatus,
   log,
   createUniqueUser,
   insertIntoTableWithReturnJson
@@ -61,10 +62,10 @@ test.describe('listener: orderCreatedListener and cancelledOrderListener receive
     ticket = lockedTicket;
   });
 
-  test('orders.cancelled is published by orders-api, tickets-api unlock the tk', async () => {
+  test('orders.updated is published by orders-api, tickets-api unlock the tk if status is cancelled', async () => {
     // event published by orders api
-    await publishToSubject(subjects.OrderCancelled, {
-      [subjects.OrderCancelled]: { id: orderId, ticket }
+    await publishToSubject(subjects.OrderUpdated, {
+      [subjects.OrderUpdated]: { id: orderId, ticket, status: OrderStatus.Cancelled }
     });
 
     log(`waiting ${graceTime} ms for the listener to process the events`);

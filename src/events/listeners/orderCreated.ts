@@ -1,21 +1,12 @@
-//lockdaown a ticket after an order is created, no furthers edist to that ticket are allowed
-// the perons that oiwn that ticket canoot come back and edit it
-
-// unlocked the ticket, the tk can be edited again
-// maybe an autmotaically unlock after certan period of time????? -> maybe use envars
-
 import { JsMsg } from 'nats';
 import { Ticket } from '@db/models';
 import { Order } from '@custom-types/index';
 import { getSequelizeClient } from '@db/sequelize';
 import { utils, events } from '@jym272ticketing/common';
 import { OrderSubjects } from '@jym272ticketing/common/dist/events';
-
-const { log, getEnvOrFail } = utils;
-const { publish, sc, subjects } = events;
+const { log } = utils;
+const { nakTheMsg, publish, sc, subjects } = events;
 const sequelize = getSequelizeClient();
-
-const nackDelay = getEnvOrFail('NACK_DELAY_MS');
 
 const lockdownTicket = async (m: JsMsg, order: Order) => {
   m.working();
@@ -30,8 +21,7 @@ const lockdownTicket = async (m: JsMsg, order: Order) => {
     }
   } catch (err) {
     log('Error processing order', err);
-    m.nak(Number(nackDelay));
-    return;
+    return nakTheMsg(m);
   }
   try {
     await sequelize.transaction(async () => {
@@ -42,8 +32,7 @@ const lockdownTicket = async (m: JsMsg, order: Order) => {
     });
   } catch (e) {
     log('Error locking the ticket', e);
-    m.nak(Number(nackDelay));
-    return;
+    return nakTheMsg(m);
   }
 };
 

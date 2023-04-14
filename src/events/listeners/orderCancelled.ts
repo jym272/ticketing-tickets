@@ -1,13 +1,11 @@
 import { JsMsg } from 'nats';
 import { Ticket } from '@db/models';
-import { log, getEnvOrFail, OrderStatus } from '@jym272ticketing/common/dist/utils';
+import { log, OrderStatus } from '@jym272ticketing/common/dist/utils';
 import { getSequelizeClient } from '@db/sequelize';
-import { OrderSubjects, publish, sc, subjects } from '@jym272ticketing/common/dist/events';
+import { OrderSubjects, publish, sc, subjects, nakTheMsg } from '@jym272ticketing/common/dist/events';
 import { Order } from '@custom-types/index';
 
 const sequelize = getSequelizeClient();
-const nackDelay = getEnvOrFail('NACK_DELAY_MS');
-
 const unlockedTicket = async (m: JsMsg, order: Order) => {
   m.working();
   let ticket: Ticket | null;
@@ -26,8 +24,7 @@ const unlockedTicket = async (m: JsMsg, order: Order) => {
     }
   } catch (err) {
     log('Error processing order', err);
-    m.nak(Number(nackDelay));
-    return;
+    return nakTheMsg(m);
   }
   try {
     await sequelize.transaction(async () => {
@@ -38,8 +35,7 @@ const unlockedTicket = async (m: JsMsg, order: Order) => {
     });
   } catch (e) {
     log('Error unlocking the ticket', e);
-    m.nak(Number(nackDelay));
-    return;
+    return nakTheMsg(m);
   }
 };
 

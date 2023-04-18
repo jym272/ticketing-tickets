@@ -10,8 +10,9 @@ const unlockedTicket = async (m: JsMsg, order: Order) => {
   m.working();
   let ticket: Ticket | null;
 
+  // If the ticket is Order Completed keep the locking,
   if (order.status !== OrderStatus.Cancelled) {
-    log('Wrong order status', order.status);
+    log('Wrong order status: ', order.status);
     return m.term();
   }
 

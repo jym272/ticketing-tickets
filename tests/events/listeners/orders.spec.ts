@@ -35,7 +35,10 @@ test.describe('listener: orderCreatedListener and cancelledOrderListener receive
   test.beforeAll(async () => {
     await truncateTables('ticket');
     orderId = generateA32BitUnsignedInteger();
-    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
+    ticket = await insertIntoTableWithReturnJson<Ticket>('ticket', {
+      ...generateTicketAttributes(),
+      userId: user1.userId
+    });
     // the tk just created is also  in orders-api
   });
 

@@ -23,7 +23,10 @@ let ticket: Ticket;
 test.describe('routes: /api/tickets GET tickets', () => {
   test.beforeAll(async () => {
     await truncateTables('ticket');
-    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
+    ticket = await insertIntoTableWithReturnJson<Ticket>('ticket', {
+      ...generateTicketAttributes(),
+      userId: user1.userId
+    });
   });
   test('retrieve all tickets success', async ({ request }) => {
     const response = await request.get('/api/tickets');

@@ -25,7 +25,10 @@ test.describe('routes: /api/tickets/:id GET ticket', () => {
   let ticket: Ticket;
   test.beforeAll(async () => {
     await truncateTables('ticket');
-    ticket = await insertIntoTableWithReturnJson('ticket', { ...generateTicketAttributes(), userId: user1.userId });
+    ticket = await insertIntoTableWithReturnJson<Ticket>('ticket', {
+      ...generateTicketAttributes(),
+      userId: user1.userId
+    });
   });
   test('Ticket Not found', async ({ request }) => {
     const response = await request.get(`/api/tickets/${ticket.id + 1}`);

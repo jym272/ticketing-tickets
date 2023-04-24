@@ -1,4 +1,5 @@
-import { TICKET_ATTRIBUTES } from '@utils/constants';
+import { TICKET_ATTRIBUTES } from '@jym272ticketing/common/dist/utils';
+
 const { MAX_DECIMALS, MAX_INTEGER, MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 export const isValidTitle = (title: string): boolean => {

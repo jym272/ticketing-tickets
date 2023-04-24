@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ticketsController } from '@controllers/tickets';
 import { commonController } from '@jym272ticketing/common';
-import { getEnvOrFail } from '@utils/env';
+import { getEnvOrFail } from '@jym272ticketing/common/dist/utils';
 const { verifyCurrentUser, requireAuth } = commonController;
 const { retrieveAllTickets, retrieveATicket, createATicket, checkAttributes, updateATicket } = ticketsController;
 

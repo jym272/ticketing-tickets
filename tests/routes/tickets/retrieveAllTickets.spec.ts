@@ -50,7 +50,7 @@ test.describe('routes: /api/tickets GET empty list', () => {
     const response = await request.get('/api/tickets');
     const tickets = (await response.json()) as Ticket[];
     expect(response.ok()).toBe(true);
-    expect(tickets.length).toBe(10);
+    expect(tickets.length).toBe(0);
     expect(response.status()).toBe(OK);
   });
 });

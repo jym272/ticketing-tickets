@@ -8,7 +8,7 @@ import { orderCancelledListener, orderCreatedListener } from '@events/listeners'
 const { server } = initializeSetup();
 
 const PORT = getEnvOrFail('PORT');
-// silly comment
+
 void (async () => {
   const queueGroupName = 'tickets-service';
   try {

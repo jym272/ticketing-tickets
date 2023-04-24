@@ -67,7 +67,7 @@ test.describe('routes: /api/tickets/:id PUT update ticket while is lockdown ', (
     expect(message).toBe('Ticket is reserved.');
   });
 });
-
+// another one bites the dust
 test.describe('routes: /api/tickets/:id PUT update ticket', () => {
   test.beforeAll(async () => {
     await truncateTables('ticket');

@@ -37,7 +37,7 @@ done
 
 playwright_test_exit_code=1
 
-if npx playwright test tests/routes/tickets/updateATicket.spec.ts; then
+if npx playwright test; then
   playwright_test_exit_code=0
 fi
 

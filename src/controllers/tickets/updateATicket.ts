@@ -3,10 +3,11 @@ import { Ticket } from '@db/models';
 import { utils, events } from '@jym272ticketing/common';
 import { TicketAttributes } from '@custom-types/index';
 import { getSequelizeClient } from '@db/sequelize';
+import { HttpStatusCodes } from '@jym272ticketing/common/dist/utils';
 
 const { throwError, httpStatusCodes, parseSequelizeError } = utils;
 const { publish, subjects } = events;
-const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, OK, FORBIDDEN } = httpStatusCodes;
+const { NOT_FOUND, BAD_REQUEST, INTERNAL_SERVER_ERROR, UNAUTHORIZED, OK, FORBIDDEN } = httpStatusCodes;
 const sequelize = getSequelizeClient();
 
 export const updateATicketController = () => {
@@ -17,6 +18,10 @@ export const updateATicketController = () => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- because of requireAuth middleware
     const currentUser = req.currentUser!;
     const userId = currentUser.jti;
+
+    if (!Number(id)) {
+      return throwError('Invalid id.', BAD_REQUEST);
+    }
 
     try {
       const { ticket, seq } = await sequelize.transaction(async () => {
@@ -46,7 +51,8 @@ export const updateATicketController = () => {
       });
       return res.status(OK).json({ ticket, seq, message: 'Ticket updated.' });
     } catch (err) {
-      if (err instanceof Error) {
+      const errWithStatus = err as Error & { statusCode?: HttpStatusCodes };
+      if (errWithStatus.statusCode) {
         throw err;
       }
       const error = parseSequelizeError(

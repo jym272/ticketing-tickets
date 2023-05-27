@@ -17,12 +17,15 @@ export const createATicketController = () => {
 
     let seq;
     try {
-      const ticket = await sequelize.transaction(async () => {
-        const newTicket = await Ticket.create({
-          title,
-          price: Number(price),
-          userId: Number(userId)
-        });
+      const ticket = await sequelize.transaction(async t1 => {
+        const newTicket = await Ticket.create(
+          {
+            title,
+            price: Number(price),
+            userId: Number(userId)
+          },
+          { transaction: t1, lock: true }
+        );
         const pa = await publish(newTicket, subjects.TicketCreated);
         seq = pa.seq;
         return newTicket;

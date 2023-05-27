@@ -20,7 +20,7 @@ const {
 } = utils;
 import { Ticket } from '@db/models';
 const { Streams, TicketSubjects, subjects } = events;
-const { NOT_FOUND, INTERNAL_SERVER_ERROR, UNAUTHORIZED, BAD_REQUEST, OK, FORBIDDEN } = httpStatusCodes;
+const { NOT_FOUND, UNAUTHORIZED, BAD_REQUEST, OK, FORBIDDEN } = httpStatusCodes;
 const { MAX_VALID_TITLE_LENGTH } = TICKET_ATTRIBUTES;
 
 // eslint-disable-next-line no-empty-pattern -- because we need to pass only the testInfo
@@ -126,8 +126,8 @@ test.describe('routes: /api/tickets/:id PUT update ticket failed', () => {
     });
     const message = await parseMessage(response);
     expect(response.ok()).toBe(false);
-    expect(message).toBe('Finding ticket failed.');
-    expect(response.status()).toBe(INTERNAL_SERVER_ERROR);
+    expect(message).toBe('Invalid id.');
+    expect(response.status()).toBe(BAD_REQUEST);
   });
   test('Ticket Not found', async ({ request }) => {
     const validTicketId = generateA32BitUnsignedInteger();

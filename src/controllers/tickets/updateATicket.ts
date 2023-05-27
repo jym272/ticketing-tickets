@@ -24,8 +24,8 @@ export const updateATicketController = () => {
     }
 
     try {
-      const { ticket, seq } = await sequelize.transaction(async () => {
-        const ticket = await Ticket.findByPk(id);
+      const { ticket, seq } = await sequelize.transaction(async t1 => {
+        const ticket = await Ticket.findByPk(id, { transaction: t1, lock: true });
         if (!ticket) {
           return throwError('Ticket not found.', NOT_FOUND);
         }
@@ -42,7 +42,7 @@ export const updateATicketController = () => {
           return throwError('Ticket is reserved.', FORBIDDEN);
         }
         ticket.set({ title, price: Number(price) });
-        await ticket.save();
+        await ticket.save({ transaction: t1 });
         const pa = await publish(ticket, subjects.TicketUpdated);
         return {
           ticket,
